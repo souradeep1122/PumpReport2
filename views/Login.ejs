@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="X-UA-Compatible" content="ie=edge" />
+<title>Login & Registration | Pumpsense</title>
+<style>
+/* Import Google font - Poppins */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --primary: #003366;
+  --accent: #005b96;
+  --bg-gradient: linear-gradient(135deg, #e2e8f0 0%, #94a3b8 100%);
+  --white: #ffffff;
+  --success: #15803d;
+}
+
+*{
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Poppins', sans-serif;
+}
+
+body{
+  min-height: 100vh;
+  width: 100%;
+  background: var(--bg-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.container{
+  max-width: 430px;
+  width: 100%;
+  background: var(--white);
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  overflow: hidden;
+  position: relative;
+}
+
+.container .registration{
+  display: none;
+}
+
+#check:checked ~ .registration{
+  display: block;
+}
+
+#check:checked ~ .login{
+  display: none;
+}
+
+#check{
+  display: none;
+}
+
+.container .form{
+  padding: 2.5rem;
+}
+
+.form header{
+  font-size: 1.8rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.form input{
+  height: 55px;
+  width: 100%;
+  padding: 0 15px;
+  font-size: 16px;
+  margin-bottom: 1.2rem;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.form input:focus{
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(0, 91, 150, 0.2);
+}
+
+.form a{
+  font-size: 14px;
+  color: var(--accent);
+  text-decoration: none;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.form a:hover{
+  text-decoration: underline;
+}
+
+.form input.button{
+  color: #fff;
+  background: var(--primary);
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  margin-top: 1rem;
+  cursor: pointer;
+  transition: 0.3s;
+  border: none;
+}
+
+.form input.button:hover{
+  background: var(--accent);
+}
+
+.signup{
+  font-size: 15px;
+  text-align: center;
+  margin-top: 20px;
+  color: #64748b;
+}
+
+.signup label{
+  color: var(--primary);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.signup label:hover{
+  text-decoration: underline;
+}
+
+.alert {
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.error-msg {
+  color: #b91c1c;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+}
+
+.logo-brand {
+    text-align: center;
+    margin-bottom: 5px;
+    font-weight: 900;
+    color: var(--primary);
+    font-size: 24px;
+    letter-spacing: -1px;
+}
+
+/* Success Popup Styles */
+.popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.6);
+    display: none; /* Controlled by JS */
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+}
+
+.popup-card {
+    background: white;
+    padding: 2.5rem 2rem;
+    border-radius: 16px;
+    text-align: center;
+    max-width: 380px;
+    width: 90%;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes slideUp {
+    from { transform: translateY(30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.popup-card .icon {
+    width: 70px;
+    height: 70px;
+    background: #dcfce7;
+    color: var(--success);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    margin: 0 auto 1.5rem;
+}
+
+.popup-card h3 {
+    color: var(--primary);
+    font-size: 1.5rem;
+    margin-bottom: 0.75rem;
+    font-weight: 700;
+}
+
+.popup-card p {
+    color: #475569;
+    font-size: 15px;
+    line-height: 1.5;
+    margin-bottom: 2rem;
+}
+
+.popup-btn {
+    background: var(--primary);
+    color: white;
+    padding: 12px 25px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    width: 100%;
+    transition: background 0.2s;
+}
+
+.popup-btn:hover {
+    background: var(--accent);
+}
+</style>
+</head>
+<body>
+
+<!-- Success Popup Overlay -->
+<div class="popup-overlay" id="successPopup">
+    <div class="popup-card">
+        <div class="icon">✓</div>
+        <h3>Account Created</h3>
+        <p id="successMsgText"></p>
+        <button class="popup-btn" onclick="closePopup()">Proceed to Login</button>
+    </div>
+</div>
+
+<div class="container">
+  <input type="checkbox" id="check" />
+
+  <!-- Login Form -->
+  <div class="login form">
+    <div class="logo-brand">PUMPSENSE</div>
+    <header>Login</header>
+    
+    <!-- Flash Messages (Errors Only) -->
+    <% if (typeof message !== 'undefined' && message && message.length > 0) { %>
+      <div class="alert error-msg"><%= message %></div>
+    <% } %>
+
+    <form action="/login" method="POST">
+      <input type="text" name="username" placeholder="Email / Username" required />
+      <input type="password" name="password" placeholder="Password" required />
+      <a href="#">Forgot password?</a>
+      <input type="submit" class="button" value="LOGIN" />
+    </form>
+    
+    <div class="signup">
+      <span>Don't have an account? 
+        <label for="check">Register here</label>
+      </span>
+    </div>
+  </div>
+
+  <!-- Registration Form -->
+  <div class="registration form">
+    <div class="logo-brand">PUMPSENSE</div>
+    <header>Create Account</header>
+    
+    <p style="font-size: 11px; color: #94a3b8; text-align: center; margin-bottom: 15px;">
+        Note: Admin roles are restricted to predefined company emails.
+    </p>
+
+    <form action="/register" method="POST" id="regForm">
+      <input type="text" name="username" placeholder="Company Email" required />
+      <input type="password" name="password" id="regPassword" placeholder="Create Password" required />
+      <input type="password" name="confirmPassword" id="regConfirmPassword" placeholder="Confirm Password" required />
+      <input type="submit" class="button" value="SIGN UP" />
+    </form>
+    
+    <div class="signup">
+      <span>Already registered? 
+        <label for="check">Login here</label>
+      </span>
+    </div>
+  </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Capture success message safely. Flash messages are often arrays, 
+        // so we check if it exists and has content.
+        const successMsg = "<%= (typeof success !== 'undefined' && success.length > 0) ? success : '' %>";
+        
+        // Only trigger if message is not empty
+        if (successMsg.trim() !== "") {
+            const popup = document.getElementById('successPopup');
+            const text = document.getElementById('successMsgText');
+            if (popup && text) {
+                text.innerText = successMsg;
+                popup.style.display = 'flex';
+            }
+        }
+
+        // Password matching validation for registration
+        const regForm = document.getElementById('regForm');
+        if (regForm) {
+            regForm.addEventListener('submit', function(e) {
+                const password = document.getElementById('regPassword').value;
+                const confirmPassword = document.getElementById('regConfirmPassword').value;
+
+                if (password !== confirmPassword) {
+                    e.preventDefault(); // Stop form submission
+                    alert("Passwords do not match! Please ensure both fields are identical.");
+                }
+            });
+        }
+    });
+
+    function closePopup() {
+        document.getElementById('successPopup').style.display = 'none';
+    }
+</script>
+
+</body>
+</html>

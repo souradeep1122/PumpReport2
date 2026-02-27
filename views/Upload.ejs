@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PUMPSENSE | Upload Certificates</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SheetJS for Excel Parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .drag-active {
+            border-color: #3b82f6 !important;
+            background-color: #eff6ff !important;
+        }
+        /* Dropdown transition */
+        .dropdown-menu {
+            display: none;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        .dropdown-menu.show {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Professional Header Navigation -->
+    <header class="bg-white shadow-sm sticky top-0 z-50 px-6 py-3">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <!-- Top Left: Company Logo Section -->
+            <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 flex items-center justify-center">
+                    <img src="https://undertaker099.s3.ap-south-1.amazonaws.com/NodeJs_Excel_Uploads/logo+(1).png" alt="Pumpsense Logo" class="h-full w-auto object-contain block">
+                </div>
+                <div class="border-l border-gray-200 pl-4">
+                    <h1 class="text-xl font-bold tracking-tight text-slate-900 uppercase leading-none">Pumpsense</h1>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Fluid Engineering</p>
+                </div>                                         
+            </div>
+
+            <!-- Top Right: Navigation & Compact Account -->
+            <div class="flex items-center space-x-6">
+                <nav class="hidden md:flex items-center space-x-6 mr-4">
+                    <a href="/view-files" class="text-sm font-medium text-slate-500 hover:text-blue-600 transition-colors">
+                        <i class="fa-solid fa-table-list mr-1"></i> Performance Reports
+                    </a>
+                </nav>
+
+                <!-- Small Profile Trigger & Detailed Dropdown -->
+                <div class="relative">
+                    <button id="profileTrigger" class="focus:outline-none transition-transform hover:scale-105 active:scale-95">
+                        <div class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold shadow-md border-2 border-white">
+                            <%= (typeof user !== 'undefined' && user.username) ? user.username.charAt(0).toUpperCase() : 'A' %>
+                        </div>
+                    </button>
+
+                    <!-- Dropdown Menu -->
+                    <div id="profileDropdown" class="dropdown-menu absolute right-0 mt-3 w-56 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
+                        <div class="p-4 bg-gray-50/50 border-b border-gray-100 text-center">
+                            <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Signed in as</p>
+                            <p class="text-sm font-bold text-slate-900 truncate">
+                                <%= (typeof user !== 'undefined' && user) ? user.username : 'Admin User' %>
+                            </p>
+                        </div>
+                        <div class="p-2">
+                            <div class="flex items-center gap-3 px-3 py-2 rounded-lg">
+                                <i class="fa-solid fa-shield-halved text-blue-500 w-4"></i>
+                                <div>
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Access Role</p>
+                                    <p class="text-xs font-bold <%= user && user.role === 'admin' ? 'text-blue-600' : 'text-slate-600' %>">
+                                        <%= (user && user.role) ? user.role.toUpperCase() : 'USER' %>
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <hr class="my-2 border-gray-100">
+                            
+                            <a href="/logout" class="flex items-center gap-3 px-3 py-3 rounded-lg text-red-500 hover:bg-red-50 transition-colors">
+                                <i class="fa-solid fa-right-from-bracket w-4"></i>
+                                <span class="text-sm font-bold">Logout</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-4xl rounded-2xl shadow-xl overflow-hidden">
+            
+            <!-- Header Banner -->
+            <div class="bg-blue-600 p-8 text-white text-center">
+                <div class="mb-4">
+                    <i class="fa-solid fa-file-circle-check text-5xl opacity-90"></i>
+                </div>
+                <h1 class="text-2xl font-bold">File Comparison Upload</h1>
+                <p class="text-blue-100 text-sm mt-2">Upload the original certificate to process performance data. Altered file is optional.</p>
+            </div>
+
+            <!-- Upload Form -->
+            <div class="p-8">
+                <form action="/upload" method="post" enctype="multipart/form-data" id="uploadForm">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        
+                        <!-- Section 1: True File -->
+                        <div>
+                            <h2 class="text-gray-700 font-bold mb-3 flex items-center">
+                                <span class="bg-blue-100 text-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-xs mr-2">1</span>
+                                True / Original File <span class="text-red-500 ml-1">*</span>
+                            </h2>
+                            
+                            <div id="dropZone1" class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center transition-all duration-300 cursor-pointer hover:border-blue-400 hover:bg-gray-50 group h-64 flex flex-col justify-center relative">
+                                <input accept=".xls,.xlsx" data-id="xlsx-file-upload-1" type="file" name="file" id="fileInput1" class="hidden" />
+                                
+                                <div id="emptyState1">
+                                    <div class="w-14 h-14 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                                        <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
+                                    </div>
+                                    <h3 class="text-gray-800 font-semibold text-base">Upload True File</h3>
+                                    <p class="text-xs text-gray-400 mt-2">Mandatory: .xls, .xlsx</p>
+                                </div>
+
+                                <div id="loadingState1" class="hidden absolute inset-0 bg-white bg-opacity-90 flex flex-col items-center justify-center z-10">
+                                    <div class="w-12 h-12 bg-gray-100 text-blue-500 rounded-full flex items-center justify-center mb-3 animate-pulse">
+                                        <i class="fa-solid fa-spinner fa-spin text-xl"></i>
+                                    </div>
+                                    <p class="text-gray-600 text-sm font-medium">Validating Content...</p>
+                                </div>
+
+                                <div id="fileState1" class="hidden absolute inset-0 bg-white flex flex-col items-center justify-center z-10">
+                                    <div class="w-14 h-14 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-3">
+                                        <i class="fa-solid fa-file-excel text-xl"></i>
+                                    </div>
+                                    <p id="fileName1" class="text-gray-800 font-semibold text-sm break-all px-4">filename.xlsx</p>
+                                    <span class="mt-2 bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-medium"><i class="fa-solid fa-check mr-1"></i>Verified</span>
+                                    <button type="button" id="removeFileBtn1" class="text-red-500 text-xs hover:underline mt-3">Remove</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Section 2: Altered File -->
+                        <div>
+                            <h2 class="text-gray-700 font-bold mb-3 flex items-center">
+                                <span class="bg-purple-100 text-purple-600 w-6 h-6 rounded-full flex items-center justify-center text-xs mr-2">2</span>
+                                Altered File <span class="text-gray-400 text-[10px] ml-2 font-normal">(Optional)</span>
+                            </h2>
+
+                            <div id="dropZone2" class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center transition-all duration-300 cursor-pointer hover:border-purple-400 hover:bg-purple-50 group h-64 flex flex-col justify-center relative">
+                                <input accept=".xls,.xlsx" data-id="xlsx-file-upload-2" type="file" name="file" id="fileInput2" class="hidden" />
+                                
+                                <div id="emptyState2">
+                                    <div class="w-14 h-14 bg-purple-50 text-purple-500 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                                        <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
+                                    </div>
+                                    <h3 class="text-gray-800 font-semibold text-base">Upload Altered File</h3>
+                                    <p class="text-xs text-gray-400 mt-2">Optional: .xls, .xlsx</p>
+                                </div>
+
+                                <div id="loadingState2" class="hidden absolute inset-0 bg-white bg-opacity-90 flex flex-col items-center justify-center z-10">
+                                    <div class="w-12 h-12 bg-gray-100 text-purple-500 rounded-full flex items-center justify-center mb-3 animate-pulse">
+                                        <i class="fa-solid fa-spinner fa-spin text-xl"></i>
+                                    </div>
+                                    <p class="text-gray-600 text-sm font-medium">Validating Content...</p>
+                                </div>
+
+                                <div id="fileState2" class="hidden absolute inset-0 bg-white flex flex-col items-center justify-center z-10">
+                                    <div class="w-14 h-14 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mb-3">
+                                        <i class="fa-solid fa-file-excel text-xl"></i>
+                                    </div>
+                                    <p id="fileName2" class="text-gray-800 font-semibold text-sm break-all px-4">filename.xlsx</p>
+                                    <span class="mt-2 bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-medium"><i class="fa-solid fa-check mr-1"></i>Verified</span>
+                                    <button type="button" id="removeFileBtn2" class="text-red-500 text-xs hover:underline mt-3">Remove</button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" id="submitBtn" class="w-full mt-8 bg-gray-300 text-gray-500 font-semibold py-4 px-4 rounded-xl shadow-sm cursor-not-allowed transition-all duration-300" disabled>
+                        Process Comparison
+                    </button>
+
+                </form>
+            </div>
+            
+            <div class="bg-gray-50 p-4 border-t border-gray-100 text-center">
+                <a href="/view-files" class="text-blue-600 text-sm font-medium hover:underline">
+                    <i class="fa-solid fa-arrow-left mr-1"></i> Back to Performance Reports
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Dropdown Logic
+        const profileTrigger = document.getElementById('profileTrigger');
+        const profileDropdown = document.getElementById('profileDropdown');
+
+        profileTrigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            profileDropdown.classList.toggle('show');
+        });
+
+        window.addEventListener('click', () => {
+            if (profileDropdown.classList.contains('show')) {
+                profileDropdown.classList.remove('show');
+            }
+        });
+
+        // Upload Zone Logic
+        const requiredMarkers = ["pump performance test certificate", "pump model", "motor make"];
+        const fileStatus = { file1: false, file2: false };
+        const submitBtn = document.getElementById('submitBtn');
+
+        function updateSubmitButton() {
+            // Modified: Only file1 (True File) is mandatory to enable the button
+            if (fileStatus.file1) {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('bg-gray-300', 'text-gray-500', 'cursor-not-allowed');
+                submitBtn.classList.add('bg-blue-600', 'text-white', 'hover:bg-blue-700', 'hover:shadow-md');
+                submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane mr-2"></i> Process Comparison';
+            } else {
+                submitBtn.disabled = true;
+                submitBtn.classList.add('bg-gray-300', 'text-gray-500', 'cursor-not-allowed');
+                submitBtn.classList.remove('bg-blue-600', 'text-white', 'hover:bg-blue-700', 'hover:shadow-md');
+                submitBtn.textContent = 'Process Comparison';
+            }
+        }
+
+        function setupUploadZone(zoneIndex) {
+            const dropZone = document.getElementById(`dropZone${zoneIndex}`);
+            const fileInput = document.getElementById(`fileInput${zoneIndex}`);
+            const emptyState = document.getElementById(`emptyState${zoneIndex}`);
+            const loadingState = document.getElementById(`loadingState${zoneIndex}`);
+            const fileState = document.getElementById(`fileState${zoneIndex}`);
+            const fileNameDisplay = document.getElementById(`fileName${zoneIndex}`);
+            const removeFileBtn = document.getElementById(`removeFileBtn${zoneIndex}`);
+
+            dropZone.addEventListener('click', (e) => {
+                if (e.target !== removeFileBtn && !fileStatus[`file${zoneIndex}`]) fileInput.click();
+            });
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eName => {
+                dropZone.addEventListener(eName, (e) => { e.preventDefault(); e.stopPropagation(); }, false);
+            });
+
+            ['dragenter', 'dragover'].forEach(eName => {
+                dropZone.addEventListener(eName, () => dropZone.classList.add('drag-active'), false);
+            });
+
+            ['dragleave', 'drop'].forEach(eName => {
+                dropZone.addEventListener(eName, () => dropZone.classList.remove('drag-active'), false);
+            });
+
+            dropZone.addEventListener('drop', (e) => handleFiles(e.dataTransfer.files), false);
+            fileInput.addEventListener('change', function() { handleFiles(this.files); });
+
+            function handleFiles(files) {
+                if (files.length > 0) {
+                    const file = files[0];
+                    if (!file.name.match(/\.(xls|xlsx)$/)) {
+                        alert('Invalid format. Please use .xls or .xlsx');
+                        return;
+                    }
+                    loadingState.classList.remove('hidden');
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const data = new Uint8Array(e.target.result);
+                            const workbook = XLSX.read(data, {type: 'array'});
+                            let fullText = "";
+                            workbook.SheetNames.forEach(sn => {
+                                const ws = workbook.Sheets[sn];
+                                const json = XLSX.utils.sheet_to_json(ws, {header: 1});
+                                fullText += " " + json.map(r => r.join(" ")).join(" ");
+                            });
+                            fullText = fullText.toLowerCase();
+                            const missing = requiredMarkers.filter(m => !fullText.includes(m.toLowerCase()));
+                            
+                            setTimeout(() => {
+                                if (missing.length === 0) {
+                                    loadingState.classList.add('hidden');
+                                    emptyState.classList.add('hidden');
+                                    fileState.classList.remove('hidden');
+                                    fileNameDisplay.textContent = file.name;
+                                    fileStatus[`file${zoneIndex}`] = true;
+                                    
+                                    const dT = new DataTransfer();
+                                    dT.items.add(file);
+                                    fileInput.files = dT.files;
+                                    updateSubmitButton();
+                                } else {
+                                    alert(`Invalid content. File is missing: ${missing.join(', ')}`);
+                                    resetZone();
+                                }
+                            }, 500);
+                        } catch (err) { alert("Error reading file."); resetZone(); }
+                    };
+                    reader.readAsArrayBuffer(file);
+                }
+            }
+
+            function resetZone() {
+                fileInput.value = '';
+                loadingState.classList.add('hidden');
+                fileState.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                fileStatus[`file${zoneIndex}`] = false;
+                updateSubmitButton();
+            }
+
+            removeFileBtn.addEventListener('click', (e) => { e.stopPropagation(); resetZone(); });
+        }
+
+        setupUploadZone(1);
+        setupUploadZone(2);
+    </script>
+</body>
+</html>
