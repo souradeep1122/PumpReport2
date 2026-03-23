@@ -58,6 +58,12 @@
                     <a href="/view-files" class="text-sm font-medium text-slate-500 hover:text-blue-600 transition-colors">
                         <i class="fa-solid fa-table-list mr-1"></i> Performance Reports
                     </a>
+                    
+                    <% if (typeof user !== 'undefined' && user.role === 'admin') { %>
+                    <a href="/upload-design" class="bg-blue-600 text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-blue-700 transition-all flex items-center shadow-sm">
+                        <i class="fa-solid fa-plus mr-2"></i> Upload Design
+                    </a>
+                    <% } %>
                 </nav>
 
                 <!-- Small Profile Trigger & Detailed Dropdown -->
@@ -231,7 +237,6 @@
         const submitBtn = document.getElementById('submitBtn');
 
         function updateSubmitButton() {
-            // Modified: Only file1 (True File) is mandatory to enable the button
             if (fileStatus.file1) {
                 submitBtn.disabled = false;
                 submitBtn.classList.remove('bg-gray-300', 'text-gray-500', 'cursor-not-allowed');

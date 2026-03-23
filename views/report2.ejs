@@ -25,7 +25,7 @@
       font-family: "Segoe UI", Arial, sans-serif;
       background: var(--bg);
       color: var(--text);
-      font-size: 12px;
+      font-size: 12px; /* Slightly increased for better mobile readability */
       line-height: 1.4;
     }
 
@@ -84,7 +84,7 @@
     .dropdown-item i { width: 16px; color: var(--accent); }
     .dropdown-item.logout { border-top: 1px solid #f1f5f9; color: #dc2626; }
 
-    /* Header Table */
+    /* Header Table Responsiveness */
     .header-table { width: 100%; border-collapse: collapse; margin-bottom: 5px; }
     .header-table td { border: 1px solid var(--border); padding: 8px; vertical-align: middle; }
     .logo-cell { width: 100px; text-align: center; }
@@ -94,7 +94,7 @@
     .company-name { font-size: 16px; font-weight: bold; color: var(--primary); text-transform: uppercase; }
     .cert-title { font-size: 13px; font-weight: bold; text-decoration: underline; margin-top: 5px; display: block; }
 
-    /* Grids */
+    /* Responsive Grids */
     .grid-container { 
       display: grid; 
       grid-template-columns: repeat(4, 1fr); 
@@ -153,14 +153,7 @@
     .btn-graph { background: var(--accent); color: white; }
     .btn-toggle { background: #374151; color: white; padding: 12px 25px; font-size: 14px; border-radius: 6px; margin: 20px auto; display: block; }
 
-    /* FIX: Hidden but has layout for Chart.js */
-    #print-graphs-area { 
-        visibility: hidden; 
-        height: 0; 
-        overflow: hidden; 
-        position: absolute; 
-        pointer-events: none;
-    }
+    #print-graphs-area { display: none; }
 
     /* Responsive Breakpoints */
     @media (max-width: 1024px) {
@@ -187,35 +180,21 @@
       .profile-trigger { align-self: flex-end; margin-top: -45px; }
     }
 
+    @media (max-width: 480px) {
+      .grid-container { grid-template-columns: 1fr; }
+      .cert-title { font-size: 11px; }
+      .company-name { font-size: 14px; }
+      .chart-box { height: 280px; }
+    }
+
     @media print {
       .top-navbar, .btn-toggle, #toggleDataBtn, .top-actions { display: none !important; }
-      .page { border: none; box-shadow: none; margin: 0; width: 100%; padding: 0; max-width: 100%; }
+      .page { border: none; box-shadow: none; margin: 0; width: 100%; padding: 0; }
       body { background: white; }
-      #print-graphs-area { 
-          visibility: visible !important; 
-          height: auto !important; 
-          position: static !important; 
-          display: block !important; 
-      }
-      /* Force new page and proper spacing */
-      #print-graphs-area h2 {
-          page-break-before: always;
-          padding-top: 50px;
-          margin-bottom: 30px;
-      }
-      /* Drastic increase in graph size for PDF output */
-      .chart-box { 
-          page-break-inside: avoid; 
-          border: 1px solid #ccc; 
-          margin: 40px 0; 
-          height: 350px !important; /* Increased significantly for full page feel */
-          width: 100% !important;
-          padding: 20px;
-      }
-      .chart-box canvas {
-          height: 100% !important;
-          width: 100% !important;
-      }
+      #print-graphs-area { position: static; display: block !important; page-break-before: always; }
+      .chart-box { page-break-inside: avoid; border: 1px solid #ccc; margin-top: 20px; }
+      .table-wrapper { overflow: visible; }
+      table.data-table { min-width: 100%; }
     }
   </style>
 </head>
@@ -257,8 +236,8 @@
               <img src="https://undertaker099.s3.ap-south-1.amazonaws.com/NodeJs_Excel_Uploads/logo+(1).png" alt="LOGO" class="circular-logo" onerror="this.src='/logo.png'">
             </td>
             <td class="company-cell">
-              <div class="company-name"><%= report.trueData.company.name %></div>
-              <div class="company-addr"><%= report.trueData.company.address %></div>
+              <div class="company-name" id="field-company-name"><%= report.trueData.company.name %></div>
+              <div class="company-addr" id="field-company-address"><%= report.trueData.company.address %></div>
               <span class="cert-title">Pump Performance Test Certificate</span>
             </td>
             <td class="meta-cell">
@@ -296,7 +275,7 @@
           <div class="grid-item"><span class="label">Voltage / Speed:</span> <span class="value"><span id="field-voltageV"><%= report.trueData.motorDetails.voltageV %></span> V / <span id="field-speedRpm"><%= report.trueData.motorDetails.speedRpm %></span> rpm</span></div>
         </div>
 
-        <!-- Measurements -->
+        <!-- Measurement Instrumentation & Test Conditions -->
         <div class="refs-section">
           <div class="ref-col">
             <div class="ref-row"><span>Flow by:</span><strong id="field-capacityMeasuredBy"><%= report.trueData.measurementReferences.capacityMeasuredBy %></strong></div>
@@ -376,16 +355,16 @@
             <div style="background: var(--light-blue); font-weight:bold; text-align:center; padding:6px; border-bottom:1px solid var(--border); color: var(--primary);">PUMP GUARANTEE</div>
             <table class="data-table" style="min-width: 100%;">
                 <tbody>
-                    <tr><td style="text-align:left; padding-left:15px;">Total Head:</td><td><strong id="field-guaranteedTotalHeadM"><%= Number(report.trueData.testSummary.guaranteedTotalHeadM || 0).toFixed(2) %></strong> m</td></tr>
-                    <tr><td style="text-align:left; padding-left:15px;">Discharge:</td><td><strong id="field-guaranteedDischargeM3Hr"><%= Number(report.trueData.testSummary.guaranteedDischargeM3Hr || 0).toFixed(2) %></strong> m3/hr</td></tr>
-                    <tr><td style="text-align:left; padding-left:15px;">Efficiency:</td><td><strong id="field-guaranteedEfficiencyPercent"><%= Number(report.trueData.testSummary.guaranteedEfficiencyPercent || 0).toFixed(2) %></strong> %</td></tr>
-                    <tr><td style="text-align:left; padding-left:15px;">Max Input Power:</td><td><strong id="field-guaranteedPumpInputKW"><%= report.trueData.testSummary.guaranteedPumpInputKW ? Number(report.trueData.testSummary.guaranteedPumpInputKW).toFixed(2) : '-' %></strong> kW</td></tr>
+                    <tr><td style="text-align:left; padding-left:15px;">Total Head:</td><td><strong id="field-guaranteedTotalHeadM"><%= report.trueData.testSummary.guaranteedTotalHeadM %></strong> m</td></tr>
+                    <tr><td style="text-align:left; padding-left:15px;">Discharge:</td><td><strong id="field-guaranteedDischargeM3Hr"><%= report.trueData.testSummary.guaranteedDischargeM3Hr %></strong> m3/hr</td></tr>
+                    <tr><td style="text-align:left; padding-left:15px;">Efficiency:</td><td><strong id="field-guaranteedEfficiencyPercent"><%= report.trueData.testSummary.guaranteedEfficiencyPercent %></strong> %</td></tr>
+                    <tr><td style="text-align:left; padding-left:15px;">Max Input Power:</td><td><strong id="field-guaranteedPumpInputKW"><%= report.trueData.testSummary.guaranteedPumpInputKW || '-' %></strong> kW</td></tr>
                 </tbody>
             </table>
           </div>
         </div>
 
-        <!-- Mechanical -->
+        <!-- Mechanical Records Section -->
         <div class="table-title">MECHANICAL TEST RECORDS</div>
         <div class="mech-container">
           <div class="mech-card">
@@ -464,16 +443,14 @@
         <button class="btn btn-toggle" id="toggleDataBtn" onclick="toggleData()">View Altered Data</button>
     <% } %>
 
-    <!-- Area for printing curves -->
     <div id="print-graphs-area">
-        <h2 style="color:var(--primary); text-align:center;">PERFORMANCE CURVES</h2>
+        <h2 style="color:var(--primary); text-align:center; margin-top: 30px;">PERFORMANCE CURVES</h2>
         <div class="chart-box"><canvas id="headChartPrint"></canvas></div>
         <div class="chart-box"><canvas id="effChartPrint"></canvas></div>
         <div class="chart-box"><canvas id="powerChartPrint"></canvas></div>
     </div>
   </div>
 
-  <!-- Graph Modal -->
   <div id="graphModal" class="modal">
     <div class="modal-content">
       <span style="float:right; cursor:pointer; font-size:32px; padding: 10px;" onclick="closeGraphModal()">&times;</span>
@@ -489,7 +466,7 @@
     let currentDataSet = 'trueData';
     let charts = { modal: [], print: [] };
 
-    // Profile Dropdown
+    // Dropdown Logic
     const profileTrigger = document.getElementById('profileTrigger');
     const profileDropdown = document.getElementById('profileDropdown');
     if (profileTrigger) {
@@ -510,39 +487,134 @@
     }
 
     function updateUI(data) {
-        // Meta fields update
+        // Document Meta
         document.getElementById('field-documentNo').innerText = data.documentDetails.documentNo || '-';
         document.getElementById('field-reportNo').innerText = data.documentDetails.reportNo || '-';
         document.getElementById('field-testDate').innerText = data.documentDetails.testDate ? new Date(data.documentDetails.testDate).toLocaleDateString('en-GB') : '-';
-        
-        // Pump Guarantee update with fixed decimal logic
-        document.getElementById('field-guaranteedTotalHeadM').innerText = Number(data.testSummary.guaranteedTotalHeadM || 0).toFixed(2);
-        document.getElementById('field-guaranteedDischargeM3Hr').innerText = Number(data.testSummary.guaranteedDischargeM3Hr || 0).toFixed(2);
-        document.getElementById('field-guaranteedEfficiencyPercent').innerText = Number(data.testSummary.guaranteedEfficiencyPercent || 0).toFixed(2);
-        document.getElementById('field-guaranteedPumpInputKW').innerText = data.testSummary.guaranteedPumpInputKW ? Number(data.testSummary.guaranteedPumpInputKW).toFixed(2) : '-';
+        document.getElementById('field-testTime').innerText = data.documentDetails.testTime || '-';
+        document.getElementById('field-testCode').innerText = data.documentDetails.testCode || '-';
+        document.getElementById('field-toleranceGrade').innerText = data.documentDetails.toleranceGrade || '-';
+        document.getElementById('field-customerName').innerText = data.documentDetails.customerName || '-';
+        document.getElementById('field-drivenThroughVFD').innerText = data.testSummary.drivenThroughVFD || 'NO';
 
-        // Re-initialize print charts
+        // Pump & Motor Details
+        document.getElementById('field-model').innerText = data.pumpDetails.model;
+        document.getElementById('field-pump-serialNo').innerText = data.pumpDetails.serialNo;
+        document.getElementById('field-make').innerText = data.motorDetails.make;
+        document.getElementById('field-frame').innerText = data.motorDetails.frame;
+        document.getElementById('field-suctionSizeMm').innerText = data.pumpDetails.suctionSizeMm;
+        document.getElementById('field-deliverySizeMm').innerText = data.pumpDetails.deliverySizeMm;
+        document.getElementById('field-ratingKW').innerText = Number(data.motorDetails.ratingKW || 0).toFixed(2);
+        document.getElementById('field-motor-serialNo').innerText = data.motorDetails.serialNo;
+        document.getElementById('field-impellerDiameterMm').innerText = Number(data.pumpDetails.impellerDiameterMm || 0).toFixed(1);
+        document.getElementById('field-impellerType').innerText = data.pumpDetails.impellerType;
+        document.getElementById('field-phase').innerText = data.motorDetails.phase;
+        document.getElementById('field-frequencyHz').innerText = data.motorDetails.frequencyHz;
+        document.getElementById('field-voltageV').innerText = data.motorDetails.voltageV;
+        document.getElementById('field-speedRpm').innerText = data.motorDetails.speedRpm;
+
+        // Measurement Refs
+        document.getElementById('field-capacityMeasuredBy').innerText = data.measurementReferences.capacityMeasuredBy || '-';
+        document.getElementById('field-speedMeasuredBy').innerText = data.measurementReferences.speedMeasuredBy || '-';
+        document.getElementById('field-suctionHeadMeasuredBy').innerText = data.measurementReferences.suctionHeadMeasuredBy || '-';
+        document.getElementById('field-deliveryHeadMeasuredBy').innerText = data.measurementReferences.deliveryHeadMeasuredBy || '-';
+        document.getElementById('field-powerMeasuredBy').innerText = data.measurementReferences.powerMeasuredBy || '-';
+        document.getElementById('field-motorEfficiencyReference').innerText = data.measurementReferences.motorEfficiencyReference || '-';
+
+        // Test Conditions
+        document.getElementById('field-atmosphericPressureMbar').innerText = Number(data.testConditions.atmosphericPressureMbar || 0).toFixed(1);
+        document.getElementById('field-liquidTempC').innerText = Number(data.testConditions.liquidTempC || 0).toFixed(1);
+        document.getElementById('field-liquidSpecificGravity').innerText = Number(data.testConditions.liquidSpecificGravity || 1).toFixed(2);
+        document.getElementById('field-npshAvailableM').innerText = Number(data.testConditions.npshAvailableM || 0).toFixed(1);
+        document.getElementById('field-ambientTempC').innerText = Number(data.testConditions.ambientTempC || 0).toFixed(1);
+        document.getElementById('field-currentAmps').innerText = Number(data.motorDetails.currentAmps || 0).toFixed(1) + ' A';
+
+        // Summary Times
+        document.getElementById('field-testStartedAt').innerText = data.testSummary.testStartedAt || '-';
+        document.getElementById('field-testEndedAt').innerText = data.testSummary.testEndedAt || '-';
+        document.getElementById('field-guaranteedSpeedRpm').innerText = (data.testSummary.guaranteedSpeedRpm || '-') + ' RPM';
+
+        // Observations table
+        const obsBody = document.getElementById('obs-table-body');
+        obsBody.innerHTML = data.observations.map(obs => `
+            <tr>
+                <td>${obs.slNo}</td><td>${obs.pumpSpeedRpm.toFixed(0)}</td>
+                <td>${obs.suctionGaugeKgCm2.toFixed(2)}</td><td>${obs.deliveryGaugeKgCm2.toFixed(2)}</td>
+                <td>${obs.velocityHeadCorrectionM.toFixed(2)}</td><td>${obs.headLossIncreaserReducerM.toFixed(2)}</td>
+                <td><strong>${obs.totalHeadM.toFixed(2)}</strong></td><td>${obs.flowM3Hr.toFixed(2)}</td>
+                <td>${obs.pumpOutputKW.toFixed(2)}</td><td>${obs.motorInputKW.toFixed(2)}</td>
+                <td>${obs.motorEfficiencyPercent.toFixed(1)}</td><td>${obs.pumpInputKW.toFixed(2)}</td>
+                <td><strong>${obs.pumpEfficiencyPercent.toFixed(1)}</strong></td>
+            </tr>
+        `).join('');
+
+        // Rated Table
+        const ratedBody = document.getElementById('rated-table-body');
+        ratedBody.innerHTML = data.ratedSpeedData.map(p => `
+            <tr class="${p.nearestDutyPoint ? 'duty-point-row' : ''}">
+                <td>${p.slNo}</td><td>${p.totalHeadM.toFixed(1)}</td><td>${p.flowM3Hr.toFixed(1)}</td>
+                <td>${p.powerKW.toFixed(1)}</td><td>${(p.specificGravity || 1).toFixed(2)}</td><td>${p.pumpEfficiencyPercent.toFixed(1)}</td>
+            </tr>
+        `).join('');
+
+        // Guarantee
+        document.getElementById('field-guaranteedTotalHeadM').innerText = data.testSummary.guaranteedTotalHeadM;
+        document.getElementById('field-guaranteedDischargeM3Hr').innerText = data.testSummary.guaranteedDischargeM3Hr;
+        document.getElementById('field-guaranteedEfficiencyPercent').innerText = data.testSummary.guaranteedEfficiencyPercent;
+        document.getElementById('field-guaranteedPumpInputKW').innerText = data.testSummary.guaranteedPumpInputKW || '-';
+
+        // Mechanical Test Records
+        document.getElementById('field-mech-pumpSerialNo').innerText = data.mechanicalTest.pumpSerialNo || data.pumpDetails.serialNo;
+        document.getElementById('field-mech-modelName').innerText = data.mechanicalTest.modelName || data.pumpDetails.model;
+        document.getElementById('field-pumpType').innerText = data.mechanicalTest.pumpType;
+        document.getElementById('field-powerRating').innerText = data.mechanicalTest.powerRating;
+        document.getElementById('field-horizontalDE').innerText = Number(data.mechanicalTest.vibration.horizontalDE || 0).toFixed(2);
+        document.getElementById('field-horizontalNDE').innerText = Number(data.mechanicalTest.vibration.horizontalNDE || 0).toFixed(2);
+        document.getElementById('field-verticalDE').innerText = Number(data.mechanicalTest.vibration.verticalDE || 0).toFixed(2);
+        document.getElementById('field-verticalNDE').innerText = Number(data.mechanicalTest.vibration.verticalNDE || 0).toFixed(2);
+        document.getElementById('field-axialDE').innerText = Number(data.mechanicalTest.vibration.axialDE || 0).toFixed(2);
+        document.getElementById('field-axialNDE').innerText = Number(data.mechanicalTest.vibration.axialNDE || 0).toFixed(2);
+        document.getElementById('field-maxAllowableDE').innerText = Number(data.mechanicalTest.vibration.maxAllowableDE || 0).toFixed(2);
+        document.getElementById('field-maxAllowableNDE').innerText = Number(data.mechanicalTest.vibration.maxAllowableNDE || 0).toFixed(2);
+
+        document.getElementById('field-deC').innerText = Number(data.mechanicalTest.bearingTemperature.deC || 0).toFixed(1);
+        document.getElementById('field-ndeC').innerText = Number(data.mechanicalTest.bearingTemperature.ndeC || 0).toFixed(1);
+        document.getElementById('field-noiseLevelDBA').innerText = data.mechanicalTest.noiseLevelDBA;
+        
+        document.getElementById('field-pressureContainment').innerText = data.mechanicalTest.leakage.pressureContainment;
+        document.getElementById('field-gasket').innerText = data.mechanicalTest.leakage.gasket;
+        document.getElementById('field-mechanicalSealPiping').innerText = data.mechanicalTest.leakage.mechanicalSealPiping;
+        document.getElementById('field-packingsOrSeal').innerText = data.mechanicalTest.leakage.packingsOrSeal;
+        document.getElementById('field-bearingHousing').innerText = data.mechanicalTest.leakage.bearingHousing;
+        document.getElementById('field-freeRunningRotatingParts').innerText = data.mechanicalTest.freeRunningRotatingParts;
+        document.getElementById('field-testEngineerName').innerText = data.mechanicalTest.testEngineerName;
+
+        // Tolerances
+        document.getElementById('field-flowTolerance').innerText = Number(data.tolerances.flowTolerance || 0).toFixed(2) + ' %';
+        document.getElementById('field-headTolerance').innerText = Number(data.tolerances.headTolerance || 0).toFixed(2) + ' %';
+        document.getElementById('field-efficiencyTolerance').innerText = Number(data.tolerances.efficiencyTolerance || 0).toFixed(2) + ' %';
+        document.getElementById('field-powerTolerance').innerText = Number(data.tolerances.powerTolerance || 0).toFixed(2) + ' %';
+
+        // Representatives
+        document.getElementById('field-customerAgency').innerText = data.representatives.customerAgency || 'Customer / Agency';
+        document.getElementById('field-manufacturer').innerText = data.representatives.manufacturer || 'Manufacturer';
+
         initCharts('print');
     }
 
     function initCharts(target) {
       const set = (target === 'modal') ? charts.modal : charts.print;
-      set.forEach(c => { if(c) c.destroy(); });
+      set.forEach(c => c.destroy());
       
       const rawData = reportData[currentDataSet].ratedSpeedData;
       const data = [...rawData].sort((a, b) => a.flowM3Hr - b.flowM3Hr);
       const suffix = (target === 'modal') ? 'Modal' : 'Print';
       const flows = data.map(d => Number(d.flowM3Hr).toFixed(1));
       
-      const isPrint = (target === 'print');
       const common = { 
-          responsive: true, 
-          maintainAspectRatio: false, 
-          animation: (isPrint ? false : { duration: 800 }),
-          plugins: { 
-              legend: { display: false },
-              tooltip: { enabled: !isPrint }
-          } 
+          responsive: true, maintainAspectRatio: false, 
+          animation: (target === 'print' ? false : { duration: 800 }),
+          plugins: { legend: { display: false } } 
       };
 
       const configs = [
@@ -554,66 +626,21 @@
       const newCharts = configs.map(cfg => {
         const canvas = document.getElementById(cfg.id);
         if(!canvas) return null;
-        
-        // Explicitly set height/width for print if needed by ChartJS
-        if(isPrint) {
-            canvas.style.height = '700px';
-        }
-
         return new Chart(canvas, {
             type: 'line', 
-            data: { 
-                labels: flows, 
-                datasets: [{ 
-                    label: cfg.label, 
-                    data: cfg.data, 
-                    borderColor: cfg.color, 
-                    tension: 0.3, 
-                    fill: false, 
-                    pointRadius: isPrint ? 6 : 4, 
-                    pointBackgroundColor: cfg.color,
-                    borderWidth: isPrint ? 3 : 2
-                }] 
-            },
-            options: { 
-                ...common, 
-                scales: { 
-                    x: { 
-                        title: { display: true, text: 'Flow (m3/hr)', font: { weight: 'bold', size: isPrint ? 16 : 12 } },
-                        ticks: { font: { size: isPrint ? 14 : 10 } }
-                    }, 
-                    y: { 
-                        title: { display: true, text: cfg.label, font: { weight: 'bold', size: isPrint ? 16 : 12 } },
-                        ticks: { font: { size: isPrint ? 14 : 10 } }
-                    } 
-                } 
-            }
+            data: { labels: flows, datasets: [{ label: cfg.label, data: cfg.data, borderColor: cfg.color, tension: 0.3, fill: false, pointRadius: 4, pointBackgroundColor: cfg.color }] },
+            options: { ...common, scales: { x: { title: { display: true, text: 'Flow (m3/hr)', font: { weight: 'bold' } } }, y: { title: { display: true, text: cfg.label, font: { weight: 'bold' } } } } }
         });
       }).filter(c => c !== null);
 
       if (target === 'modal') charts.modal = newCharts; else charts.print = newCharts;
     }
 
-    function openGraphModal() { 
-        document.getElementById('graphModal').style.display = "block"; 
-        setTimeout(() => initCharts('modal'), 100); 
-    }
-    
+    function openGraphModal() { document.getElementById('graphModal').style.display = "block"; setTimeout(() => initCharts('modal'), 50); }
     function closeGraphModal() { document.getElementById('graphModal').style.display = "none"; }
+    function prepareAndPrint() { initCharts('print'); setTimeout(() => { window.print(); }, 800); }
 
-    function prepareAndPrint() {
-        // Force re-render of print charts
-        initCharts('print');
-        
-        // Give the browser more time to handle the reflow and ChartJS to finalize rendering
-        setTimeout(() => { 
-            window.print(); 
-        }, 1200); 
-    }
-
-    window.onload = () => { 
-        initCharts('print'); 
-    };
+    window.onload = () => { initCharts('print'); };
   </script>
 </body>
 </html>

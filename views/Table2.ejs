@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PUMPSENSE | Management Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .custom-scrollbar::-webkit-scrollbar { height: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .dropdown-menu {
+            display: none;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        .dropdown-menu.show {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .tab-active {
+            border-bottom: 2px solid #2563eb;
+            color: #2563eb;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-slate-800 min-h-screen flex flex-col font-sans">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center justify-center">
+                    <img src="https://undertaker099.s3.ap-south-1.amazonaws.com/NodeJs_Excel_Uploads/logo+(1).png" alt="Pumpsense Logo" class="h-12 w-auto block object-contain">
+                </div>
+                <div class="border-l border-gray-200 pl-4">
+                    <h1 class="text-xl font-bold tracking-tight text-slate-900 uppercase leading-none">Pumpsense</h1>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Fluid Engineering</p>
+                </div>                                         
+            </div>
+
+            <div class="flex items-center space-x-6">
+                <nav class="hidden md:flex items-center space-x-6 mr-4">
+                    <% if (user.role === 'MASTER' || user.role === 'REPORT TEAM') { %>
+                        <a href="/upload" class="text-sm font-medium text-slate-500 hover:text-blue-600 transition-colors">Upload Report</a>
+                    <% } %>
+                    <% if (user.role === 'MASTER' || user.role === 'DESIGN TEAM' || user.role === 'REPORT TEAM') { %>
+                        <a href="/upload-design" class="text-sm font-medium text-slate-500 hover:text-blue-600 transition-colors">Upload Design</a>
+                    <% } %>
+                </nav>
+
+                <div class="relative">
+                    <button id="profileTrigger" class="focus:outline-none transition-transform hover:scale-105 active:scale-95">
+                        <div class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold shadow-md border-2 border-white">
+                            <%= user.username.charAt(0).toUpperCase() %>
+                        </div>
+                    </button>
+
+                    <div id="profileDropdown" class="dropdown-menu absolute right-0 mt-3 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
+                        <div class="p-4 bg-gray-50/50 border-b border-gray-100 text-center">
+                            <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Signed in as</p>
+                            <p class="text-sm font-bold text-slate-900 truncate"><%= user.username %></p>
+                        </div>
+                        <div class="p-2">
+                            <div class="flex items-center gap-3 px-3 py-2 rounded-lg bg-blue-50/50">
+                                <i class="fa-solid fa-user-shield text-blue-500 w-4"></i>
+                                <div>
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">System Role</p>
+                                    <p class="text-xs font-black text-blue-600"><%= user.role %></p>
+                                </div>
+                            </div>
+                            <hr class="my-2 border-gray-100">
+                            <a href="/logout" class="flex items-center gap-3 px-3 py-3 rounded-lg text-red-500 hover:bg-red-50 transition-colors">
+                                <i class="fa-solid fa-right-from-bracket w-4"></i>
+                                <span class="text-sm font-bold">Logout</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow flex flex-col items-center p-4">
+        <div class="w-full max-w-[98%] fade-in mt-4">
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100">
+                
+                <!-- Tab Navigation -->
+                <div class="flex border-b border-slate-100 bg-gray-50/30">
+                    <button onclick="switchTab('reports')" id="tab-reports" class="px-8 py-4 text-sm font-bold border-b-2 border-transparent hover:text-blue-600 transition-all tab-active">
+                        <i class="fa-solid fa-file-contract mr-2"></i> Performance Reports
+                    </button>
+                    <button onclick="switchTab('designs')" id="tab-designs" class="px-8 py-4 text-sm font-bold border-b-2 border-transparent hover:text-blue-600 transition-all">
+                        <i class="fa-solid fa-drafting-compass mr-2"></i> Design Specifications
+                    </button>
+                </div>
+
+                <!-- Dashboard Header -->
+                <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white gap-4">
+                    <div>
+                        <h2 id="viewTitle" class="text-xl font-bold text-slate-900">Performance History</h2>
+                        <p id="viewDescription" class="text-sm text-slate-500 mt-1">Manage and view comparisons for your fluid engineering certificates.</p>
+                    </div>
+                    
+                    <div id="actionButtons" class="flex gap-2 w-full sm:w-auto">
+                        <% if (user.role === 'MASTER' || user.role === 'REPORT TEAM') { %>
+                            <a id="btn-upload-report" href="/upload" class="inline-flex items-center justify-center flex-1 sm:flex-initial rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-md hover:bg-blue-700 transition-all">
+                                <i class="fa-solid fa-upload mr-2"></i> New Comparison
+                            </a>
+                        <% } %>
+                        <% if (user.role === 'MASTER' || user.role === 'DESIGN TEAM' || user.role === 'REPORT TEAM') { %>
+                            <a id="btn-upload-design" href="/upload-design" class="hidden inline-flex items-center justify-center flex-1 sm:flex-initial rounded-lg bg-slate-800 px-5 py-2.5 text-sm font-bold text-white shadow-md hover:bg-slate-900 transition-all">
+                                <i class="fa-solid fa-plus mr-2"></i> New Design
+                            </a>
+                        <% } %>
+                    </div>
+                </div>
+
+                <!-- Global Search -->
+                <div class="p-5 border-b border-slate-100">
+                    <div class="relative max-w-md">
+                        <div class="absolute inset-y-0 left-0 flex items-center pl-3">
+                            <i class="fa-solid fa-magnifying-glass text-slate-400 text-sm"></i>
+                        </div>
+                        <input type="text" id="searchInput" oninput="applyFilters()" class="block w-full rounded-lg border py-2.5 pl-10 text-slate-900 ring-gray-300 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-600 sm:text-sm bg-slate-50" placeholder="Search by model or serial no...">
+                    </div>
+                </div>
+
+                <!-- Table Container -->
+                <div class="overflow-x-auto min-h-[400px] custom-scrollbar">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead id="tableHead" class="bg-slate-50">
+                            <!-- Header content injected by JS -->
+                        </thead>
+                        <tbody id="tableBody" class="divide-y divide-gray-200 bg-white">
+                            <!-- Body content injected by JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="p-4 bg-gray-50/50 border-t border-slate-100 flex justify-between items-center">
+                    <span id="resultCount" class="text-xs font-bold text-slate-500">Loading records...</span>
+                    <span class="text-[10px] uppercase font-black text-slate-300 tracking-widest">PumpSense Systems v2.0</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Data and State
+        const userRole = '<%= user.role %>';
+        const reportsData = <%- JSON.stringify(files || []) %>;
+        const designsData = <%- JSON.stringify(designs || []) %>;
+        let currentTab = 'reports';
+
+        // UI References
+        const tableHead = document.getElementById('tableHead');
+        const tableBody = document.getElementById('tableBody');
+        const viewTitle = document.getElementById('viewTitle');
+        const viewDescription = document.getElementById('viewDescription');
+        const resultCount = document.getElementById('resultCount');
+        const searchInput = document.getElementById('searchInput');
+
+        // Toggle Logic
+        document.getElementById('profileTrigger').onclick = (e) => {
+            e.stopPropagation();
+            document.getElementById('profileDropdown').classList.toggle('show');
+        };
+        window.onclick = () => document.getElementById('profileDropdown').classList.remove('show');
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.getElementById('tab-reports').className = tab === 'reports' ? 'px-8 py-4 text-sm font-bold border-b-2 tab-active' : 'px-8 py-4 text-sm font-bold border-b-2 border-transparent hover:text-blue-600 transition-all';
+            document.getElementById('tab-designs').className = tab === 'designs' ? 'px-8 py-4 text-sm font-bold border-b-2 tab-active' : 'px-8 py-4 text-sm font-bold border-b-2 border-transparent hover:text-blue-600 transition-all';
+            
+            // Toggle Action Buttons
+            if(document.getElementById('btn-upload-report')) document.getElementById('btn-upload-report').style.display = tab === 'reports' ? 'inline-flex' : 'none';
+            if(document.getElementById('btn-upload-design')) document.getElementById('btn-upload-design').style.display = tab === 'designs' ? 'inline-flex' : 'none';
+
+            viewTitle.innerText = tab === 'reports' ? 'Performance History' : 'Design Master Specifications';
+            viewDescription.innerText = tab === 'reports' ? 'Manage and view comparisons for your fluid engineering certificates.' : 'Access and manage standard design parameters for pump comparison.';
+            
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const query = searchInput.value.toLowerCase();
+            const data = currentTab === 'reports' ? reportsData : designsData;
+            
+            const filtered = data.filter(item => {
+                const model = (item.pumpModel || item.trueData?.pumpDetails?.model || "").toLowerCase();
+                const sn = (item.serialNo || item.trueData?.pumpDetails?.serialNo || "").toLowerCase();
+                return model.includes(query) || sn.includes(query);
+            });
+
+            renderTable(filtered);
+        }
+
+        function renderTable(data) {
+            tableBody.innerHTML = '';
+            resultCount.innerText = `Displaying ${data.length} ${currentTab}`;
+
+            if (currentTab === 'reports') {
+                tableHead.innerHTML = `
+                    <tr>
+                        <th class="py-4 pl-6 pr-3 text-left text-xs font-black text-slate-500 uppercase tracking-widest border-b">Pump Model</th>
+                        <th class="px-3 py-4 text-left text-xs font-black text-slate-500 uppercase tracking-widest border-b">Serial No.</th>
+                        <th class="px-3 py-4 text-left text-xs font-black text-slate-500 uppercase tracking-widest border-b">Impeller</th>
+                        <th class="px-3 py-4 text-left text-xs font-black text-slate-500 uppercase tracking-widest border-b">Date</th>
+                        <th class="relative py-4 pr-6 text-right text-xs font-black text-slate-500 uppercase tracking-widest border-b">Actions</th>
+                    </tr>`;
+                
+                data.forEach(r => {
+                    const row = document.createElement('tr');
+                    row.className = "hover:bg-blue-50/50 cursor-pointer group";
+                    row.onclick = () => window.location.href = `/report/${r._id}`;
+                    
+                    const model = r.trueData?.pumpDetails?.model || '-';
+                    const serial = r.trueData?.pumpDetails?.serialNo || '-';
+                    const impeller = r.trueData?.pumpDetails?.impellerDiameterMm ? `${r.trueData.pumpDetails.impellerDiameterMm} mm` : '-';
+                    const date = r.uploadDate ? new Date(r.uploadDate).toLocaleDateString() : '-';
+
+                    row.innerHTML = `
+                        <td class="py-4 pl-6 pr-3 text-sm font-bold text-slate-900">${model}</td>
+                        <td class="px-3 py-4 text-sm font-mono text-slate-500">${serial}</td>
+                        <td class="px-3 py-4 text-sm text-slate-600">${impeller}</td>
+                        <td class="px-3 py-4 text-sm text-slate-400">${date}</td>
+                        <td class="px-6 py-4 text-right">
+                            <div class="flex items-center justify-end space-x-3">
+                                <span class="text-[10px] font-black uppercase text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">View Report</span>
+                                <% if (user.role === 'MASTER' || user.role === 'REPORT TEAM') { %>
+                                    <button onclick="handleDeleteReport('${r._id}', event)" class="text-slate-300 hover:text-red-600 transition-colors">
+                                        <i class="fa-solid fa-trash-can text-sm"></i>
+                                    </button>
+                                <% } %>
+                            </div>
+                        </td>`;
+                    tableBody.appendChild(row);
+                });
+            } else {
+                // DESIGN SPECIFICATIONS TAB
+                tableHead.innerHTML = `
+                    <tr>
+                        <th class="py-4 pl-6 pr-3 text-left text-xs font-black text-slate-500 uppercase tracking-widest border-b">Model</th>
+                        <th class="px-3 py-4 text-left text-xs font-black text-slate-500 uppercase tracking-widest border-b">Serial No.</th>
+                        <th class="px-3 py-4 text-left text-xs font-black text-slate-500 uppercase tracking-widest border-b">Discharge</th>
+                        <th class="px-3 py-4 text-left text-xs font-black text-slate-500 uppercase tracking-widest border-b">Power (Kw)</th>
+                        <th class="px-3 py-4 text-left text-xs font-black text-slate-500 uppercase tracking-widest border-b">Efficiency</th>
+                        <th class="relative py-4 pr-6 text-right text-xs font-black text-slate-500 uppercase tracking-widest border-b">Actions</th>
+                    </tr>`;
+                
+                data.forEach(d => {
+                    const row = document.createElement('tr');
+                    // Authorized roles can click to edit design
+                    const canEdit = ['MASTER', 'DESIGN TEAM', 'REPORT TEAM'].includes(userRole);
+                    row.className = `group ${canEdit ? 'hover:bg-slate-50 cursor-pointer' : 'cursor-default'}`;
+                    
+                    if (canEdit) {
+                        row.onclick = () => window.location.href = `/edit-design/${d._id}`;
+                    }
+
+                    row.innerHTML = `
+                        <td class="py-4 pl-6 pr-3 text-sm font-bold text-slate-900">${d.pumpModel}</td>
+                        <td class="px-3 py-4 text-sm font-mono text-slate-500">${d.serialNo}</td>
+                        <td class="px-3 py-4 text-sm text-slate-600">${d.discharge} m³/hr</td>
+                        <td class="px-3 py-4 text-sm text-slate-600">${d.power} Kw</td>
+                        <td class="px-3 py-4 text-sm">
+                            <span class="px-2 py-1 rounded bg-green-50 text-green-700 font-bold text-xs">${d.efficiency}%</span>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                             <div class="flex items-center justify-end space-x-3">
+                                ${canEdit ? `<span class="text-[10px] font-black uppercase text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">Edit Design</span>` : ''}
+                                <% if (user.role === 'MASTER' || user.role === 'DESIGN TEAM' || user.role === 'REPORT TEAM') { %>
+                                    <button onclick="handleDeleteDesign('${d._id}', event)" class="text-slate-300 hover:text-red-600 transition-colors">
+                                        <i class="fa-solid fa-trash-can text-sm"></i>
+                                    </button>
+                                <% } %>
+                            </div>
+                        </td>`;
+                    tableBody.appendChild(row);
+                });
+            }
+
+            if (data.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="6" class="py-20 text-center text-slate-400 italic">No records found.</td></tr>`;
+            }
+        }
+
+        async function handleDeleteReport(id, e) {
+            e.stopPropagation();
+            if(!confirm("Are you sure you want to permanently delete this report and its S3 assets?")) return;
+            
+            try {
+                const res = await fetch(`/delete-report/${id}`, { method: 'POST' });
+                const json = await res.json();
+                if(json.success) {
+                    window.location.reload();
+                } else {
+                    alert("Delete failed: " + json.message);
+                }
+            } catch (err) {
+                alert("An error occurred during deletion.");
+            }
+        }
+
+        async function handleDeleteDesign(id, e) {
+            e.stopPropagation();
+            if(!confirm("Are you sure you want to permanently delete this design specification?")) return;
+            
+            try {
+                const res = await fetch(`/delete-design/${id}`, { method: 'POST' });
+                const json = await res.json();
+                if(json.success) {
+                    window.location.reload();
+                } else {
+                    alert("Delete failed: " + json.message);
+                }
+            } catch (err) {
+                alert("An error occurred during deletion.");
+            }
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => applyFilters());
+    </script>
+</body>
+</html>
