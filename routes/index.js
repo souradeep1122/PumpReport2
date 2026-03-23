@@ -14,7 +14,7 @@ const User = require("../Credentials");
 const { parseExcelData } = require("../Middleware/ExcelParser");
 
 // --- PREDEFINED ADMIN LIST ---
-const ADMIN_LIST = ['admin@pumpsense.com', 'souradeep@pumpsense.com', 'head@pumpsense.com', 'deep'];
+const ADMIN_LIST = ['admin@pumpsense.com', 'souradeep@pumpsense.com', 'head@pumpsense.com', 'deep','souvik.saha@worldofpumps.com'];
 
 // 1. S3 Configuration
 const s3 = new S3Client({
