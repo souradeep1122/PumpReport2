@@ -110,7 +110,7 @@ app.get("/view-files", ensureAuthenticated, async (req, res) => {
 
 // --- Report Routes ---
 
-app.get("/upload", authorize([ROLES.MASTER, ROLES.REPORT_TEAM]), (req, res) => res.render("Upload5", { user: req.user }));
+app.get("/upload", authorize([ROLES.MASTER, ROLES.REPORT_TEAM]), (req, res) => res.render("upload5", { user: req.user }));
 
 app.post("/upload", authorize([ROLES.MASTER, ROLES.REPORT_TEAM]), upload.array("file", 2), async (req, res) => {
     try {
