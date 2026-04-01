@@ -110,7 +110,7 @@ app.get("/view-files", ensureAuthenticated, async (req, res) => {
 
 // --- Report Routes ---
 
-app.get("/upload", authorize([ROLES.MASTER, ROLES.REPORT_TEAM]), (req, res) => res.render("Upload", { user: req.user }));
+app.get("/upload", authorize([ROLES.MASTER, ROLES.REPORT_TEAM]), (req, res) => res.render("Upload5", { user: req.user }));
 
 app.post("/upload", authorize([ROLES.MASTER, ROLES.REPORT_TEAM]), upload.array("file", 2), async (req, res) => {
     try {
@@ -130,7 +130,7 @@ app.post("/upload", authorize([ROLES.MASTER, ROLES.REPORT_TEAM]), upload.array("
             alteredData: req.files[1] ? utils.parseExcelData(fileBuffers[1]) : null,
             uploadedBy: req.user._id
         });
-        res.redirect(`/view-files`);
+        res.redirect(`/upload`);
     } catch (error) { res.status(500).send("Upload failed."); }
 });
 
