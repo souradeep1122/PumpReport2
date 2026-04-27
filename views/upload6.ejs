@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PUMPSENSE | Upload Certificates</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .drag-active { border-color: #3b82f6 !important; background-color: #eff6ff !important; }
+        .dropdown-menu { display: none; opacity: 0; transform: translateY(-10px); transition: opacity 0.2s ease, transform 0.2s ease; }
+        .dropdown-menu.show { display: block; opacity: 1; transform: translateY(0); }
+        
+        /* Animation for Active Sync */
+        @keyframes pulse-status {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+        .status-pulse { animation: pulse-status 2s infinite; }
+        
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .mode-toggle { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .active-mode-manual { border-color: #e2e8f0; background-color: #ffffff; }
+        .active-mode-auto { border-color: #3b82f6; background-color: #f0f7ff; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col text-slate-900">
+
+    <header class="bg-white border-b border-slate-100 sticky top-0 z-50 px-6 py-3">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <div class="w-10 h-10 flex items-center justify-center">
+                    <img src="https://undertaker099.s3.ap-south-1.amazonaws.com/NodeJs_Excel_Uploads/logo+(1).png" alt="Pumpsense Logo" class="h-full w-auto object-contain">
+                </div>
+                <div class="border-l border-slate-200 pl-4">
+                    <h1 class="text-lg font-black tracking-tighter text-slate-900 uppercase leading-none">Pumpsense</h1>
+                    <p class="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1">Fluid Engineering</p>
+                </div>                                        
+            </div>
+
+            <div class="flex items-center space-x-6">
+                <nav class="hidden md:flex items-center space-x-6 mr-4">
+                    <a href="/view-files" class="text-xs font-bold text-slate-500 hover:text-blue-600 transition-colors flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line text-slate-400"></i> Performance Reports
+                    </a>
+                </nav>
+
+                <div class="relative">
+                    <button id="profileTrigger" class="focus:outline-none transition-transform hover:scale-105 active:scale-95">
+                        <div class="w-9 h-9 bg-slate-900 text-white rounded-full flex items-center justify-center font-bold shadow-lg text-sm border-2 border-white">
+                            A
+                        </div>
+                    </button>
+                    <div id="profileDropdown" class="dropdown-menu absolute right-0 mt-3 w-52 bg-white rounded-xl shadow-2xl border border-slate-100 z-50 overflow-hidden">
+                        <div class="p-4 bg-slate-50 border-b border-slate-100">
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Administrator</p>
+                            <p class="text-sm font-bold text-slate-800 truncate">Admin User</p>
+                        </div>
+                        <div class="p-1">
+                            <a href="/logout" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-500 hover:bg-red-50 transition-colors">
+                                <i class="fa-solid fa-power-off text-xs"></i>
+                                <span class="text-xs font-bold uppercase tracking-wider">Logout</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow flex flex-col items-center py-10 px-4">
+        
+        <!-- Mode Switcher Banner -->
+        <div class="w-full max-w-4xl mb-8">
+            <div id="modeBanner" class="bg-white rounded-2xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border p-5 flex flex-col md:flex-row items-center justify-between gap-6 mode-toggle active-mode-manual">
+                <div class="flex items-center gap-5">
+                    <div id="modeIcon" class="w-14 h-14 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center transition-all shadow-inner border border-slate-100">
+                        <i class="fa-solid fa-hand-pointer text-2xl"></i>
+                    </div>
+                    <div>
+                        <h3 id="modeTitle" class="font-bold text-slate-800 text-base">Manual Upload Mode</h3>
+                        <p id="modeDescription" class="text-xs text-slate-500 font-medium">Drag and drop files to manually compare certificates.</p>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col sm:flex-row items-center gap-4">
+                    <!-- Toggle Switch -->
+                    <div class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+                        <button id="btnManualMode" class="px-5 py-2 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all bg-white shadow-sm text-slate-800">Manual</button>
+                        <button id="btnAutoMode" class="px-5 py-2 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all text-slate-400 hover:text-slate-600">Automatic</button>
+                    </div>
+
+                    <!-- Automation Specific Controls - STRUCTURED & BALANCED -->
+                    <div id="autoControls" class="hidden flex items-center gap-2 fade-in">
+                        <div class="h-8 w-[1px] bg-slate-200 mx-2 hidden sm:block"></div>
+                        
+                        <div class="flex items-center gap-2">
+                            <button id="enableAutoBtn" class="h-10 group relative flex items-center gap-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all duration-300 shadow-[0_4px_12px_rgba(59,130,246,0.3)] active:scale-95">
+                                <span id="syncStatusDot" class="w-2 h-2 bg-white/40 rounded-full"></span>
+                                <span id="syncBtnText" class="text-[10px] font-black uppercase tracking-widest whitespace-nowrap">Start Live Sync</span>
+                                <i id="syncBtnIcon" class="fa-solid fa-play text-[10px] opacity-80 group-hover:translate-x-0.5 transition-transform"></i>
+                            </button>
+
+                            <button id="changeFolderBtn" class="h-10 px-4 flex items-center justify-center gap-2 bg-white text-slate-600 hover:text-blue-600 hover:bg-slate-50 rounded-xl transition-all border border-slate-200 shadow-sm active:scale-95 whitespace-nowrap">
+                                <i class="fa-solid fa-folder-open text-xs"></i>
+                                <span class="text-[10px] font-black uppercase tracking-wider">Choose Folder</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white w-full max-w-4xl rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-slate-100 overflow-hidden">
+            <div id="mainHeader" class="bg-slate-800 p-10 text-white text-center transition-all duration-700 relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4 opacity-5">
+                    <i class="fa-solid fa-microchip text-9xl"></i>
+                </div>
+                
+                <div class="relative z-10">
+                    <div class="mb-5 inline-flex items-center justify-center w-20 h-20 bg-white/10 rounded-3xl backdrop-blur-sm border border-white/20">
+                        <i id="headerIcon" class="fa-solid fa-file-import text-4xl text-white/90"></i>
+                    </div>
+                    <h1 class="text-3xl font-black tracking-tight mb-2">Process Reports</h1>
+                    <p id="headerSubtext" class="text-slate-400 text-xs font-bold uppercase tracking-[0.3em]">Manual Engine Enabled</p>
+                </div>
+            </div>
+
+            <div class="p-8 md:p-12">
+                <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                        
+                        <!-- Section 1: True File -->
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <h2 class="text-slate-800 font-black text-[11px] uppercase tracking-[0.15em] flex items-center">
+                                    <span class="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                                    01. Original Certificate
+                                </h2>
+                                <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded uppercase">Required</span>
+                            </div>
+                            
+                            <div id="dropZone1" class="border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center transition-all duration-300 cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 group h-72 flex flex-col justify-center relative bg-slate-50/50">
+                                <input accept=".xls,.xlsx" type="file" name="file" id="fileInput1" class="hidden" />
+                                
+                                <div id="emptyState1">
+                                    <div class="w-16 h-16 bg-white text-slate-300 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:text-blue-500 transition-all shadow-sm border border-slate-100">
+                                        <i class="fa-solid fa-upload text-2xl"></i>
+                                    </div>
+                                    <h3 class="text-slate-800 font-bold text-sm">Upload Master File</h3>
+                                    <p class="text-[10px] text-slate-400 font-medium mt-2 leading-relaxed px-6">System will extract pump performance markers automatically.</p>
+                                </div>
+
+                                <div id="loadingState1" class="hidden absolute inset-0 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center z-10 rounded-2xl">
+                                    <div class="w-12 h-12 text-blue-500 flex items-center justify-center mb-3">
+                                        <i class="fa-solid fa-circle-notch fa-spin text-3xl"></i>
+                                    </div>
+                                    <p class="text-slate-900 text-[10px] font-black uppercase tracking-widest">Parsing Data</p>
+                                </div>
+
+                                <div id="fileState1" class="hidden absolute inset-0 bg-white flex flex-col items-center justify-center z-10 rounded-2xl p-6 shadow-inner">
+                                    <div class="w-16 h-16 bg-green-50 text-green-500 rounded-2xl flex items-center justify-center mb-4 border border-green-100">
+                                        <i class="fa-solid fa-check-double text-2xl"></i>
+                                    </div>
+                                    <p id="fileName1" class="text-slate-900 font-bold text-sm truncate max-w-full mb-1">filename.xlsx</p>
+                                    <span class="text-[10px] font-black text-green-600 uppercase tracking-widest">Verified & Ready</span>
+                                    <button type="button" id="removeFileBtn1" class="mt-6 text-[10px] font-black text-slate-400 hover:text-red-500 uppercase tracking-widest transition-colors">Change File</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Section 2: Altered File -->
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <h2 class="text-slate-800 font-black text-[11px] uppercase tracking-[0.15em] flex items-center">
+                                    <span class="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+                                    02. Altered Comparison
+                                </h2>
+                                <span class="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded uppercase">Optional</span>
+                            </div>
+
+                            <div id="dropZone2" class="border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center transition-all duration-300 cursor-pointer hover:border-purple-400 hover:bg-purple-50/30 group h-72 flex flex-col justify-center relative bg-slate-50/50">
+                                <input accept=".xls,.xlsx" type="file" name="file" id="fileInput2" class="hidden" />
+                                
+                                <div id="emptyState2">
+                                    <div class="w-16 h-16 bg-white text-slate-300 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:text-purple-500 transition-all shadow-sm border border-slate-100">
+                                        <i class="fa-solid fa-copy text-2xl"></i>
+                                    </div>
+                                    <h3 class="text-slate-800 font-bold text-sm">Upload Altered File</h3>
+                                    <p class="text-[10px] text-slate-400 font-medium mt-2 leading-relaxed px-6">Cross-verify differences against the master certificate.</p>
+                                </div>
+
+                                <div id="loadingState2" class="hidden absolute inset-0 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center z-10 rounded-2xl">
+                                    <i class="fa-solid fa-circle-notch fa-spin text-3xl text-purple-500 mb-3"></i>
+                                    <p class="text-slate-900 text-[10px] font-black uppercase tracking-widest">Scanning</p>
+                                </div>
+
+                                <div id="fileState2" class="hidden absolute inset-0 bg-white flex flex-col items-center justify-center z-10 rounded-2xl p-6 shadow-inner">
+                                    <div class="w-16 h-16 bg-purple-50 text-purple-500 rounded-2xl flex items-center justify-center mb-4 border border-purple-100">
+                                        <i class="fa-solid fa-fingerprint text-2xl"></i>
+                                    </div>
+                                    <p id="fileName2" class="text-slate-900 font-bold text-sm truncate max-w-full mb-1">filename.xlsx</p>
+                                    <span class="text-[10px] font-black text-purple-600 uppercase tracking-widest">Linked for Analysis</span>
+                                    <button type="button" id="removeFileBtn2" class="mt-6 text-[10px] font-black text-slate-400 hover:text-red-500 uppercase tracking-widest transition-colors">Clear</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-12">
+                        <button type="submit" id="submitBtn" class="w-full group bg-slate-100 text-slate-400 font-black uppercase tracking-[0.2em] py-5 px-4 rounded-2xl shadow-sm cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-3 overflow-hidden relative" disabled>
+                            <span class="relative z-10">Run Comparison Engine</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <footer class="mt-10 text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] flex items-center gap-3">
+            <span>&copy; 2024 Pumpsense</span>
+            <span class="w-1 h-1 bg-slate-200 rounded-full"></span>
+            <span>Fluid Engineering Division</span>
+        </footer>
+    </main>
+
+    <script>
+        const profileTrigger = document.getElementById('profileTrigger');
+        const profileDropdown = document.getElementById('profileDropdown');
+        const uploadForm = document.getElementById('uploadForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const requiredMarkers = ["pump performance test certificate", "pump model", "motor make"];
+        
+        let currentMode = 'manual'; 
+        let fileStatus = { file1: false, file2: false };
+        let isUploading = false;
+
+        profileTrigger.addEventListener('click', (e) => { e.stopPropagation(); profileDropdown.classList.toggle('show'); });
+        window.addEventListener('click', () => profileDropdown.classList.remove('show'));
+
+        const btnManualMode = document.getElementById('btnManualMode');
+        const btnAutoMode = document.getElementById('btnAutoMode');
+        const modeBanner = document.getElementById('modeBanner');
+        const modeIcon = document.getElementById('modeIcon');
+        const modeTitle = document.getElementById('modeTitle');
+        const modeDescription = document.getElementById('modeDescription');
+        const autoControls = document.getElementById('autoControls');
+        const mainHeader = document.getElementById('mainHeader');
+        const headerIcon = document.getElementById('headerIcon');
+        const headerSubtext = document.getElementById('headerSubtext');
+
+        function setMode(mode) {
+            currentMode = mode;
+            if (mode === 'manual') {
+                stopWatcher();
+                btnManualMode.className = "px-5 py-2 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all bg-white shadow-sm text-slate-800";
+                btnAutoMode.className = "px-5 py-2 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all text-slate-400 hover:text-slate-600";
+                modeBanner.className = "bg-white rounded-2xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border p-5 flex flex-col md:flex-row items-center justify-between gap-6 mode-toggle active-mode-manual";
+                modeIcon.innerHTML = '<i class="fa-solid fa-hand-pointer text-2xl"></i>';
+                modeIcon.className = "w-14 h-14 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center transition-all shadow-inner border border-slate-100";
+                modeTitle.innerText = "Manual Upload Mode";
+                modeDescription.innerText = "Drag and drop files to manually compare certificates.";
+                autoControls.classList.add('hidden');
+                mainHeader.className = "bg-slate-800 p-10 text-white text-center transition-all duration-700 relative overflow-hidden";
+                headerIcon.className = "fa-solid fa-file-import text-4xl text-white/90";
+                headerSubtext.innerText = "Manual Engine Enabled";
+            } else {
+                btnAutoMode.className = "px-5 py-2 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all bg-white shadow-sm text-blue-600";
+                btnManualMode.className = "px-5 py-2 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all text-slate-400 hover:text-slate-600";
+                modeBanner.className = "bg-white rounded-2xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border p-5 flex flex-col md:flex-row items-center justify-between gap-6 mode-toggle active-mode-auto";
+                modeIcon.innerHTML = '<i class="fa-solid fa-bolt-lightning text-2xl"></i>';
+                modeIcon.className = "w-14 h-14 bg-blue-50 text-blue-500 rounded-2xl flex items-center justify-center transition-all shadow-inner border border-blue-100";
+                modeTitle.innerText = "Automatic Device Sync";
+                modeDescription.innerText = "Listening for device exports in your selected folder.";
+                autoControls.classList.remove('hidden');
+                mainHeader.className = "bg-blue-600 p-10 text-white text-center transition-all duration-700 relative overflow-hidden";
+                headerIcon.className = "fa-solid fa-bolt text-4xl text-white/90";
+                headerSubtext.innerText = "Active Sync Environment";
+            }
+            updateSubmitButton();
+        }
+
+        btnManualMode.addEventListener('click', () => setMode('manual'));
+        btnAutoMode.addEventListener('click', () => setMode('auto'));
+
+        async function performAsyncUpload() {
+            if (isUploading) return;
+            isUploading = true;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-3"></i> Syncing...';
+            const formData = new FormData(uploadForm);
+            try {
+                const response = await fetch(uploadForm.action, { method: 'POST', body: formData });
+                if (response.ok) {
+                    showToast("Operation Success: Certificate synchronized.", "fa-circle-check", "text-green-400");
+                    resetZone(1);
+                    resetZone(2);
+                } else {
+                    showToast("Upload Failed: File rejected.", "fa-circle-xmark", "text-red-400");
+                }
+            } catch (error) {
+                showToast("Network Error: Protocol interrupted.", "fa-wifi", "text-yellow-400");
+            } finally {
+                isUploading = false;
+                updateSubmitButton();
+            }
+        }
+
+        uploadForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            performAsyncUpload();
+        });
+
+        function updateSubmitButton() {
+            if (fileStatus.file1) {
+                submitBtn.disabled = false;
+                submitBtn.className = "w-full bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-[0.2em] py-5 px-4 rounded-2xl shadow-xl hover:shadow-blue-200 transition-all cursor-pointer flex items-center justify-center gap-3";
+                submitBtn.innerHTML = 'Execute Comparison <i class="fa-solid fa-arrow-right-long text-xs opacity-50"></i>';
+            } else {
+                submitBtn.disabled = true;
+                submitBtn.className = "w-full bg-slate-100 text-slate-400 font-black uppercase tracking-[0.2em] py-5 px-4 rounded-2xl shadow-sm cursor-not-allowed transition-all";
+                submitBtn.innerHTML = 'Waiting for Original';
+            }
+        }
+
+        function setupUploadZone(idx) {
+            const dropZone = document.getElementById(`dropZone${idx}`);
+            const fileInput = document.getElementById(`fileInput${idx}`);
+            const removeFileBtn = document.getElementById(`removeFileBtn${idx}`);
+            dropZone.addEventListener('click', (e) => {
+                if (e.target !== removeFileBtn && !fileStatus[`file${idx}`]) fileInput.click();
+            });
+            fileInput.addEventListener('change', function() { handleFiles(this.files, idx); });
+            async function handleFiles(files, zoneIdx) {
+                if (files.length === 0) return;
+                const file = files[0];
+                if (!file.name.match(/\.(xls|xlsx)$/)) return;
+                const loadingState = document.getElementById(`loadingState${zoneIdx}`);
+                loadingState.classList.remove('hidden');
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, {type: 'array'});
+                        let fullText = "";
+                        workbook.SheetNames.forEach(sn => {
+                            const ws = workbook.Sheets[sn];
+                            const json = XLSX.utils.sheet_to_json(ws, {header: 1});
+                            fullText += " " + json.map(r => r.join(" ")).join(" ");
+                        });
+                        fullText = fullText.toLowerCase();
+                        const missing = requiredMarkers.filter(m => !fullText.includes(m.toLowerCase()));
+                        if (missing.length === 0) {
+                            document.getElementById(`loadingState${zoneIdx}`).classList.add('hidden');
+                            document.getElementById(`emptyState${zoneIdx}`).classList.add('hidden');
+                            document.getElementById(`fileState${zoneIdx}`).classList.remove('hidden');
+                            document.getElementById(`fileName${zoneIdx}`).textContent = file.name;
+                            fileStatus[`file${idx}`] = true;
+                            const dT = new DataTransfer();
+                            dT.items.add(file);
+                            fileInput.files = dT.files;
+                            updateSubmitButton();
+                            if (currentMode === 'auto' && zoneIdx === 1 && directoryHandle) performAsyncUpload();
+                        } else {
+                            showToast(`Schema Mismatch: Missing ${missing[0]}`, "fa-triangle-exclamation", "text-red-400");
+                            resetZone(zoneIdx);
+                        }
+                    } catch (err) { resetZone(zoneIdx); }
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        }
+
+        window.resetZone = (idx) => {
+            const fInput = document.getElementById(`fileInput${idx}`);
+            const lState = document.getElementById(`loadingState${idx}`);
+            const fState = document.getElementById(`fileState${idx}`);
+            const eState = document.getElementById(`emptyState${idx}`);
+            if (fInput) fInput.value = '';
+            if (lState) lState.classList.add('hidden');
+            if (fState) fState.classList.add('hidden');
+            if (eState) eState.classList.remove('hidden');
+            fileStatus[`file${idx}`] = false;
+            updateSubmitButton();
+        };
+
+        document.getElementById('removeFileBtn1').addEventListener('click', (e) => { e.stopPropagation(); resetZone(1); });
+        document.getElementById('removeFileBtn2').addEventListener('click', (e) => { e.stopPropagation(); resetZone(2); });
+
+        const enableAutoBtn = document.getElementById('enableAutoBtn');
+        const syncStatusDot = document.getElementById('syncStatusDot');
+        const syncBtnText = document.getElementById('syncBtnText');
+        const syncBtnIcon = document.getElementById('syncBtnIcon');
+        const changeFolderBtn = document.getElementById('changeFolderBtn');
+        
+        let directoryHandle = null;
+        let knownFiles = new Set();
+        let watchInterval = null;
+
+        async function openDB() {
+            return new Promise((res, rej) => {
+                const req = indexedDB.open('PumpsenseSyncV2', 1);
+                req.onupgradeneeded = () => req.result.createObjectStore('settings');
+                req.onsuccess = () => res(req.result);
+                req.onerror = () => rej(req.error);
+            });
+        }
+
+        async function getStoredHandle() {
+            try {
+                const db = await openDB();
+                return new Promise(res => {
+                    const req = db.transaction('settings').objectStore('settings').get('folderHandle');
+                    req.onsuccess = () => res(req.result);
+                    req.onerror = () => res(null);
+                });
+            } catch(e) { return null; }
+        }
+
+        async function storeHandle(handle) {
+            const db = await openDB();
+            db.transaction('settings', 'readwrite').objectStore('settings').put(handle, 'folderHandle');
+        }
+
+        async function startWatching() {
+            if (watchInterval) { stopWatcher(); return; }
+            try {
+                directoryHandle = await getStoredHandle();
+                if (!directoryHandle) {
+                    directoryHandle = await window.showDirectoryPicker();
+                    await storeHandle(directoryHandle);
+                } else {
+                    if ((await directoryHandle.requestPermission({mode: 'read'})) !== 'granted') {
+                        directoryHandle = await window.showDirectoryPicker();
+                        await storeHandle(directoryHandle);
+                    }
+                }
+                enableAutoBtn.classList.replace('bg-blue-600', 'bg-green-600');
+                enableAutoBtn.classList.replace('hover:bg-blue-700', 'hover:bg-green-700');
+                enableAutoBtn.classList.replace('shadow-[0_4px_12px_rgba(59,130,246,0.3)]', 'shadow-[0_4px_12px_rgba(34,197,94,0.3)]');
+                syncStatusDot.className = "w-2 h-2 bg-white rounded-full status-pulse";
+                syncBtnText.innerText = "Monitoring Folder";
+                syncBtnIcon.className = "fa-solid fa-stop text-[10px]";
+                knownFiles.clear();
+                for await (const entry of directoryHandle.values()) {
+                    if (entry.kind === 'file' && entry.name.match(/\.(xls|xlsx)$/)) knownFiles.add(entry.name);
+                }
+                watchInterval = setInterval(watchFolder, 3000);
+                showToast("Real-time folder monitoring established.", "fa-tower-broadcast", "text-blue-400");
+            } catch (err) { stopWatcher(); }
+        }
+
+        function stopWatcher() {
+            clearInterval(watchInterval); 
+            watchInterval = null;
+            enableAutoBtn.classList.replace('bg-green-600', 'bg-blue-600');
+            enableAutoBtn.classList.replace('hover:bg-green-700', 'hover:bg-blue-700');
+            enableAutoBtn.classList.replace('shadow-[0_4px_12px_rgba(34,197,94,0.3)]', 'shadow-[0_4px_12px_rgba(59,130,246,0.3)]');
+            syncStatusDot.className = "w-2 h-2 bg-white/40 rounded-full";
+            syncBtnText.innerText = "Start Live Sync";
+            syncBtnIcon.className = "fa-solid fa-play text-[10px]";
+        }
+
+        async function watchFolder() {
+            if (!directoryHandle || isUploading) return;
+            try {
+                for await (const entry of directoryHandle.values()) {
+                    if (entry.kind === 'file' && entry.name.match(/\.(xls|xlsx)$/)) {
+                        if (!knownFiles.has(entry.name)) {
+                            knownFiles.add(entry.name);
+                            const file = await entry.getFile();
+                            const dT = new DataTransfer();
+                            dT.items.add(file);
+                            document.getElementById('fileInput1').files = dT.files;
+                            document.getElementById('fileInput1').dispatchEvent(new Event('change'));
+                        }
+                    }
+                }
+            } catch (e) { stopWatcher(); }
+        }
+
+        enableAutoBtn.addEventListener('click', startWatching);
+        changeFolderBtn.addEventListener('click', async () => {
+            stopWatcher();
+            try {
+                directoryHandle = await window.showDirectoryPicker();
+                await storeHandle(directoryHandle);
+                startWatching();
+            } catch (e) {}
+        });
+
+        function showToast(msg, icon = "fa-bolt", iconColor = "text-blue-400") {
+            const toast = document.createElement('div');
+            toast.className = "fixed bottom-8 right-8 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl text-[11px] font-black uppercase tracking-widest z-[100] fade-in flex items-center gap-4 border border-slate-800";
+            toast.innerHTML = `<i class="fa-solid ${icon} ${iconColor} text-base"></i> ${msg}`;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(10px)';
+                toast.style.transition = 'all 0.5s ease';
+                setTimeout(() => toast.remove(), 500);
+            }, 4000);
+        }
+
+        setupUploadZone(1);
+        setupUploadZone(2);
+        setMode('manual');
+    </script>
+</body>
+</html>
