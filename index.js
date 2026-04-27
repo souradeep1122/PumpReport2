@@ -1,3 +1,7 @@
+const dns = require('dns');
+dns.setDefaultResultOrder('ipv4first');
+dns.setServers(['8.8.8.8', '8.8.4.4']);
+
 const { 
     express, path, mongoose, axios, s3, BUCKET_NAME, DeleteObjectCommand,
     passport, LocalStrategy, session, flash, upload,
@@ -110,7 +114,7 @@ app.get("/view-files", ensureAuthenticated, async (req, res) => {
 
 // --- Report Routes ---
 
-app.get("/upload", authorize([ROLES.MASTER, ROLES.REPORT_TEAM]), (req, res) => res.render("upload5", { user: req.user }));
+app.get("/upload", authorize([ROLES.MASTER, ROLES.REPORT_TEAM]), (req, res) => res.render("upload6", { user: req.user }));
 
 app.post("/upload", authorize([ROLES.MASTER, ROLES.REPORT_TEAM]), upload.array("file", 2), async (req, res) => {
     try {
@@ -152,7 +156,7 @@ app.get('/report/:id', ensureAuthenticated, async (req, res) => {
         if (!report) return res.status(404).send("Report not found");
         const pumpModel = report.trueData.pumpDetails.model;
         const design = await Design.findOne({ pumpModel: pumpModel });
-        res.render('report4', { report, design, user: req.user });
+        res.render('report8', { report, design, user: req.user });
     } catch (err) { 
         console.error(err);
         res.status(500).send("Error loading report."); 
